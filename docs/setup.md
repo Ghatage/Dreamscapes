@@ -11,9 +11,9 @@ This document captures current state, what works, what doesn't, and how to set u
 - Proxy `/comfy` is used to avoid CORS/adblock issues.
 
 ## Current limitations (known gaps)
-- Workflow in the web UI is a basic pipeline (not the full Krita live workflow).
-- Krita-style live painting (only update touched areas, prompt weighting, live strength) is not yet mirrored.
-- To mirror Krita exactly, a workflow dump (`workflow.json`) is required from Krita.
+- Region-based inpainting (only update touched areas) is not yet implemented.
+- ControlNet / IP-Adapter guidance layers are not yet wired.
+- Custom prompt weighting syntax (e.g. `(word:1.3)`) is passed through as-is; the CLIP encoder handles it.
 
 ## Project structure (important files)
 - Web UI: `E:\ws\openai_hackathon\webui`
@@ -142,15 +142,35 @@ E:\ws\ComfyUI\venv\Scripts\python.exe E:\ws\ComfyUI\ComfyUI\main.py --listen 0.0
 - Lower resolution and steps (defaults are 512x512, 12 steps).
 - Increase live debounce (currently 900 ms).
 
-## Krita workflow parity (future work)
-To mirror Krita live painting:
-1) Enable dump:
-   - `C:\Users\barat\AppData\Roaming\krita\ai_diffusion\settings.json`
-   - Set `"debug_dump_workflow": true`
-2) Restart Krita.
-3) Run a live-paint stroke with at least one visible paint layer.
-4) Retrieve:
-   - `C:\Users\barat\AppData\Roaming\krita\ai_diffusion\logs\workflow.json`
-5) Replace `webui/src/modules/workflow.js` with the dumped graph.
+## Krita workflow parity
 
-If you want help wiring the dumped workflow, share the JSON and the desired SDXL model (e.g., `zavychromaxl_v80.safetensors`).
+The web UI now mirrors the core Krita AI Diffusion live-painting pipeline:
+
+### How it works (matching Krita)
+- **BasicScheduler** always generates the **full sigma schedule** (`denoise: 1.0`).
+- **Strength** controls a **SplitSigmas** node that skips early high-noise steps:
+  - `start_at_step = round(steps * (1 - strength))`
+  - Low strength (e.g. 0.3) → skip most steps → sketch preserved, light prompt influence
+  - High strength (e.g. 0.9) → skip few steps → prompt dominates, sketch is a loose guide
+  - Strength 1.0 → no split, full creative control from the prompt
+- **SplitSigmas is only used for img2img** (when canvas has content).
+  For txt2img (blank canvas), the full schedule goes straight to the sampler.
+- **CFGGuider** applies prompt conditioning with the CFG scale.
+
+### Recommended defaults for live painting (Hyper-SDXL)
+| Setting        | Value                                    |
+|----------------|------------------------------------------|
+| Checkpoint     | SDXL checkpoint (e.g. `zavychromaxl`)    |
+| LoRA           | `Hyper-SDXL-8steps-CFG-lora.safetensors` |
+| Steps          | 8                                        |
+| CFG            | 4                                        |
+| Strength       | 0.4–0.7 (lower = more sketch fidelity)  |
+| Sampler        | euler                                    |
+| Scheduler      | sgm_uniform                              |
+| Live Scale     | 800                                      |
+
+### Dumping Krita's workflow (for debugging)
+If you need to compare with Krita's exact workflow:
+1) `C:\Users\barat\AppData\Roaming\krita\ai_diffusion\settings.json` → set `"debug_dump_workflow": true`
+2) Restart Krita, run a live-paint stroke.
+3) Retrieve: `C:\Users\barat\AppData\Roaming\krita\ai_diffusion\logs\workflow.json`

@@ -20,78 +20,144 @@ const settingsSchema = [
     id: 'prompt',
     label: 'Prompt',
     type: 'textarea',
-    defaultValue: 'A cinematic sketch of a futuristic city, high detail',
+    defaultValue: 'girl walking on a beach with a dog and tree and sun shine, masterpiece, best quality, recent, newest, absurdres, highres',
     section: 'prompt',
+    hideInUi: true,
   },
   {
     id: 'negativePrompt',
     label: 'Negative Prompt',
     type: 'textarea',
-    defaultValue: '',
+    defaultValue: 'nsfw, explicit, worst quality, worst aesthetic, bad quality, average quality, oldest, old, very displeasing, displeasing',
     section: 'prompt',
+    hideInUi: true,
+  },
+  {
+    id: 'controlNetModel',
+    label: 'ControlNet Model',
+    type: 'select',
+    defaultValue: '',
+    options: [],
+    helper: 'Scribble ControlNet for structural guidance',
+    section: 'controlnet',
+  },
+  {
+    id: 'controlNetPreprocess',
+    label: 'ControlNet Preprocess',
+    type: 'select',
+    defaultValue: 'none',
+    options: ['none', 'canny'],
+    helper: 'Optional edge pre-process before ControlNet',
+    section: 'controlnet',
+  },
+  {
+    id: 'controlNetCannyLow',
+    label: 'Canny Low Threshold',
+    type: 'number',
+    defaultValue: 80,
+    min: 1,
+    max: 255,
+    step: 1,
+    showWhen: (state) => state.controlNetPreprocess === 'canny',
+    section: 'controlnet',
+  },
+  {
+    id: 'controlNetCannyHigh',
+    label: 'Canny High Threshold',
+    type: 'number',
+    defaultValue: 180,
+    min: 1,
+    max: 255,
+    step: 1,
+    showWhen: (state) => state.controlNetPreprocess === 'canny',
+    section: 'controlnet',
+  },
+  {
+    id: 'controlNetStrength',
+    label: 'ControlNet Strength',
+    type: 'number',
+    defaultValue: 0.3,
+    min: 0.1,
+    max: 1.0,
+    step: 0.05,
+    helper: 'How strongly to follow the sketch lines (0.5 = gentle, 1.0 = strict)',
+    section: 'controlnet',
+  },
+  {
+    id: 'controlNetStart',
+    label: 'ControlNet Start %',
+    type: 'number',
+    defaultValue: 0,
+    min: 0,
+    max: 1,
+    step: 0.05,
+    helper: 'When ControlNet kicks in (0 = from the start)',
+    section: 'controlnet',
+  },
+  {
+    id: 'controlNetEnd',
+    label: 'ControlNet End %',
+    type: 'number',
+    defaultValue: 0.6,
+    min: 0,
+    max: 1,
+    step: 0.05,
+    helper: 'When ControlNet stops (1 = through all steps)',
+    section: 'controlnet',
   },
   {
     id: 'width',
     label: 'Width',
     type: 'number',
-    defaultValue: 512,
+    defaultValue: 500,
     min: 256,
     max: 2048,
-    step: 64,
-    helper: 'Use multiples of 64',
+    step: 1,
+    helper: 'Final output width',
     section: 'generation',
   },
   {
     id: 'height',
     label: 'Height',
     type: 'number',
-    defaultValue: 512,
+    defaultValue: 500,
     min: 256,
     max: 2048,
-    step: 64,
-    helper: 'Use multiples of 64',
-    section: 'generation',
-  },
-  {
-    id: 'steps',
-    label: 'Steps',
-    type: 'number',
-    defaultValue: 8,
-    min: 1,
-    max: 60,
     step: 1,
-    section: 'generation',
-  },
-  {
-    id: 'cfg',
-    label: 'Prompt Importance (CFG)',
-    type: 'number',
-    defaultValue: 4,
-    min: 1,
-    max: 20,
-    step: 0.5,
+    helper: 'Final output height',
     section: 'generation',
   },
   {
     id: 'strength',
     label: 'Strength',
     type: 'number',
-    defaultValue: 0.62,
+    defaultValue: 0.7,
     min: 0.1,
-    max: 1,
-    step: 0.01,
-    helper: 'Live strength (maps to denoise in Krita workflow)',
+    max: 1.0,
+    step: 0.02,
+    helper: 'How much the prompt transforms the sketch (higher = more creative change)',
     section: 'generation',
   },
   {
-    id: 'denoise',
-    label: 'Denoise',
+    id: 'steps',
+    label: 'Steps',
     type: 'number',
-    defaultValue: 1.0,
-    min: 0.1,
-    max: 1,
-    step: 0.05,
-    helper: 'Lower keeps more of the sketch',
+    defaultValue: 20,
+    min: 4,
+    max: 30,
+    step: 1,
+    helper: 'Match your LoRA (8 for Hyper-SDXL-8steps)',
+    section: 'generation',
+  },
+  {
+    id: 'cfg',
+    label: 'CFG (Prompt Importance)',
+    type: 'number',
+    defaultValue: 4.0,
+    min: 1,
+    max: 8,
+    step: 0.5,
+    helper: 'How strongly to follow the prompt (4 is a good default)',
     section: 'generation',
   },
   {
@@ -109,8 +175,8 @@ const settingsSchema = [
     id: 'loraName',
     label: 'Live LoRA',
     type: 'text',
-    defaultValue: 'Hyper-SDXL-8steps-CFG-lora.safetensors',
-    helper: 'Krita live preset LoRA',
+    defaultValue: '',
+    helper: 'Optional LoRA name (leave empty to disable)',
     section: 'generation',
   },
   {
@@ -118,9 +184,9 @@ const settingsSchema = [
     label: 'LoRA Strength (Model)',
     type: 'number',
     defaultValue: 1.0,
-    min: 0,
-    max: 2,
-    step: 0.1,
+    min: 0.5,
+    max: 1.5,
+    step: 0.05,
     section: 'generation',
   },
   {
@@ -128,16 +194,16 @@ const settingsSchema = [
     label: 'LoRA Strength (Clip)',
     type: 'number',
     defaultValue: 1.0,
-    min: 0,
-    max: 2,
-    step: 0.1,
+    min: 0.5,
+    max: 1.5,
+    step: 0.05,
     section: 'generation',
   },
   {
     id: 'seed',
     label: 'Seed (optional)',
     type: 'number',
-    defaultValue: '',
+    defaultValue: 900011171,
     min: 0,
     step: 1,
     section: 'generation',
@@ -146,8 +212,8 @@ const settingsSchema = [
     id: 'sampler',
     label: 'Sampler',
     type: 'select',
-    defaultValue: 'euler',
-    options: ['euler', 'euler_ancestral', 'dpmpp_2m', 'dpmpp_2m_sde'],
+    defaultValue: 'euler_ancestral',
+    options: ['euler', 'euler_ancestral', 'dpmpp_2m', 'dpmpp_2m_sde', 'dpmpp_sde'],
     section: 'generation',
   },
   {
@@ -155,7 +221,7 @@ const settingsSchema = [
     label: 'Scheduler',
     type: 'select',
     defaultValue: 'normal',
-    options: ['normal', 'karras', 'exponential', 'simple'],
+    options: ['sgm_uniform', 'normal', 'karras', 'exponential', 'simple'],
     section: 'generation',
   },
   {
@@ -168,12 +234,20 @@ const settingsSchema = [
     step: 1,
     section: 'canvas',
   },
+  {
+    id: 'brushColor',
+    label: 'Brush Color',
+    type: 'color',
+    defaultValue: '#101820',
+    section: 'canvas',
+  },
 ]
 
 const sectionOrder = [
   { id: 'connection', label: 'Connection', open: true },
   { id: 'model', label: 'Model', open: true },
   { id: 'prompt', label: 'Prompt', open: true },
+  { id: 'controlnet', label: 'ControlNet (Sketch Guidance)', open: true },
   { id: 'generation', label: 'Generation', open: false },
   { id: 'canvas', label: 'Canvas', open: false },
 ]
@@ -205,6 +279,7 @@ export function initSettings(container, store) {
 
     settingsSchema
       .filter((setting) => setting.section === section.id)
+      .filter((setting) => !setting.hideInUi)
       .forEach((setting) => {
         const field = document.createElement('div')
         field.className = 'field'
@@ -264,11 +339,19 @@ export function initSettings(container, store) {
         return
       }
       input.innerHTML = ''
+      if (id === 'controlNetModel') {
+        const offOption = document.createElement('option')
+        offOption.value = ''
+        offOption.textContent = 'Off'
+        input.appendChild(offOption)
+      }
       if (!options.length) {
-        const option = document.createElement('option')
-        option.value = ''
-        option.textContent = 'No models found'
-        input.appendChild(option)
+        if (id !== 'controlNetModel') {
+          const option = document.createElement('option')
+          option.value = ''
+          option.textContent = 'No models found'
+          input.appendChild(option)
+        }
         return
       }
       options.forEach((value) => {
@@ -277,7 +360,11 @@ export function initSettings(container, store) {
         option.textContent = value
         input.appendChild(option)
       })
-      input.value = store.getState()[id] || options[0]
+      if (id === 'controlNetModel') {
+        input.value = store.getState()[id] || ''
+      } else {
+        input.value = store.getState()[id] || options[0]
+      }
       store.setState({ [id]: input.value })
     },
   }
