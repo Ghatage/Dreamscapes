@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Collab SSH"
+  short_description: "Coordinate agents with SSH board and file locks"
+  default_prompt: "Coordinate distributed agents via a shared SSH workspace: bootstrap board, claim tasks atomically, lock files, post handoffs, and release locks to avoid conflicts."
