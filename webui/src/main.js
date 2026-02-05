@@ -18,8 +18,7 @@ app.innerHTML = `
   <div class="app-shell">
     <header class="app-header">
       <div class="brand">
-        <h1>Dreamscapes Paint</h1>
-        <p class="subtitle">Sketch-to-image workspace</p>
+        <h1>Dreamscape</h1>
       </div>
     </header>
 
@@ -49,13 +48,8 @@ app.innerHTML = `
         <div class="prompt-block">
           <div class="prompt-head">
             <label for="prompt-inline">Prompt</label>
-            <button id="neg-toggle-btn" class="subtle" type="button">Negative</button>
           </div>
           <textarea id="prompt-inline" rows="1"></textarea>
-          <div class="neg-wrap" data-neg-wrap hidden>
-            <label for="negative-inline">Negative prompt</label>
-            <textarea id="negative-inline" rows="1"></textarea>
-          </div>
         </div>
 
         <div class="controls-bottom">
@@ -73,6 +67,15 @@ app.innerHTML = `
                 <span>Color</span>
                 <input id="brush-color-picker" type="color" />
               </label>
+              <div class="color-swatches" aria-label="Quick colors">
+                <button class="swatch" type="button" data-color="#101820" title="Ink"></button>
+                <button class="swatch" type="button" data-color="#2f6bff" title="Blue"></button>
+                <button class="swatch" type="button" data-color="#22c55e" title="Green"></button>
+                <button class="swatch" type="button" data-color="#f59e0b" title="Amber"></button>
+                <button class="swatch" type="button" data-color="#ef4444" title="Red"></button>
+                <button class="swatch" type="button" data-color="#a855f7" title="Violet"></button>
+                <button class="swatch" type="button" data-color="#ffffff" title="White"></button>
+              </div>
             </div>
             <div class="preset-buttons" role="group" aria-label="Control preset">
               <button data-control-preset="loose">Loose</button>
@@ -193,16 +196,31 @@ const brushSizePicker = document.querySelector('#brush-size-picker')
 const brushSizeValue = document.querySelector('#brush-size-value')
 const clearButton = document.querySelector('#clear-btn')
 const brushColorPicker = document.querySelector('#brush-color-picker')
+const swatchButtons = [...document.querySelectorAll('.swatch[data-color]')]
 const liveToggle = document.querySelector('#live-toggle')
 const promptInline = document.querySelector('#prompt-inline')
-const negativeInline = document.querySelector('#negative-inline')
-const negToggleBtn = document.querySelector('#neg-toggle-btn')
-const negWrap = document.querySelector('[data-neg-wrap]')
 const presetButtons = [...document.querySelectorAll('[data-control-preset]')]
 
 brushColorPicker.value = store.getState().brushColor || '#101820'
 brushColorPicker.addEventListener('input', (event) => {
   store.setState({ brushColor: event.target.value })
+})
+
+function syncSwatches(color) {
+  const next = (color || '').toLowerCase()
+  swatchButtons.forEach((btn) => {
+    btn.classList.toggle('active', (btn.dataset.color || '').toLowerCase() === next)
+  })
+}
+
+swatchButtons.forEach((btn) => {
+  // Paint each swatch via CSS var so we can style active state.
+  btn.style.setProperty('--swatch', btn.dataset.color)
+  btn.addEventListener('click', () => {
+    const color = btn.dataset.color
+    if (!color) return
+    store.setState({ brushColor: color })
+  })
 })
 brushSizePicker.value = String(store.getState().brushSize || 18)
 brushSizeValue.textContent = String(store.getState().brushSize || 18)
@@ -212,20 +230,6 @@ brushSizePicker.addEventListener('input', (event) => {
 promptInline.value = store.getState().prompt || ''
 promptInline.addEventListener('input', (event) => {
   store.setState({ prompt: event.target.value })
-})
-
-negativeInline.value = store.getState().negativePrompt || ''
-negativeInline.addEventListener('input', (event) => {
-  store.setState({ negativePrompt: event.target.value })
-})
-
-negToggleBtn.addEventListener('click', () => {
-  const isHidden = negWrap.hasAttribute('hidden')
-  if (isHidden) {
-    negWrap.removeAttribute('hidden')
-  } else {
-    negWrap.setAttribute('hidden', '')
-  }
 })
 
 const workspaceGrid = document.querySelector('[data-workspace-grid]')
@@ -466,12 +470,10 @@ store.subscribe((state) => {
 
   const nextBrushColor = state.brushColor || '#101820'
   if (brushColorPicker.value !== nextBrushColor) brushColorPicker.value = nextBrushColor
+  syncSwatches(nextBrushColor)
 
   if (promptInline.value !== (state.prompt || '')) {
     promptInline.value = state.prompt || ''
-  }
-  if (negativeInline.value !== (state.negativePrompt || '')) {
-    negativeInline.value = state.negativePrompt || ''
   }
 
   syncPresetButtons(state)

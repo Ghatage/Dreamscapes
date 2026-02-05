@@ -27,8 +27,11 @@ export function initCanvas(canvas, store, { onDraw } = {}) {
     }
 
     const ratio = window.devicePixelRatio || 1
-    canvas.style.width = `${width}px`
-    canvas.style.height = `${height}px`
+    // Fit the canvas to the panel rather than forcing a fixed on-screen size.
+    // Internal resolution still matches the requested width/height (scaled by DPR).
+    canvas.style.width = '100%'
+    canvas.style.height = 'auto'
+    canvas.style.aspectRatio = `${Math.max(1, width)} / ${Math.max(1, height)}`
     canvas.width = Math.floor(width * ratio)
     canvas.height = Math.floor(height * ratio)
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0)
@@ -50,9 +53,16 @@ export function initCanvas(canvas, store, { onDraw } = {}) {
 
   function getPos(event) {
     const rect = canvas.getBoundingClientRect()
+    // Map from CSS pixels (what the user clicks) to the canvas' logical coordinate space.
+    // This fixes pointer offset when the canvas is visually scaled by CSS.
+    const ratio = window.devicePixelRatio || 1
+    const logicalW = canvas.width / ratio
+    const logicalH = canvas.height / ratio
+    const sx = rect.width ? (logicalW / rect.width) : 1
+    const sy = rect.height ? (logicalH / rect.height) : 1
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: (event.clientX - rect.left) * sx,
+      y: (event.clientY - rect.top) * sy,
     }
   }
 

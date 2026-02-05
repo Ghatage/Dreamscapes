@@ -30,7 +30,6 @@ const settingsSchema = [
     type: 'textarea',
     defaultValue: 'nsfw, explicit, worst quality, worst aesthetic, bad quality, average quality, oldest, old, very displeasing, displeasing',
     section: 'prompt',
-    hideInUi: true,
   },
   {
     id: 'controlNetModel',
@@ -283,6 +282,9 @@ export function initSettings(container, store) {
       .forEach((setting) => {
         const field = document.createElement('div')
         field.className = 'field'
+        if (setting.type === 'textarea') {
+          field.classList.add('span-2')
+        }
 
         const label = document.createElement('label')
         label.textContent = setting.label

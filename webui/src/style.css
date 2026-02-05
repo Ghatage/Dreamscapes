@@ -66,7 +66,7 @@ h3 {
 
 .app-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   gap: 1rem;
   padding: 0.6rem 0.85rem;
@@ -76,6 +76,15 @@ h3 {
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
   min-height: var(--header-h);
+}
+
+.brand {
+  width: 100%;
+  text-align: center;
+}
+
+.brand h1 {
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
@@ -107,7 +116,9 @@ h3 {
   gap: var(--gap);
   min-height: 0;
   flex: 1;
-  align-items: start;
+  align-items: stretch;
+  /* Prevent the tallest column (usually Advanced) from forcing blank space in others. */
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .workspace-grid.is-advanced-collapsed {
@@ -152,7 +163,7 @@ h3 {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .controls-right {
@@ -211,6 +222,8 @@ h3 {
   padding-top: 0.4rem;
   border-top: 1px dashed var(--line);
 }
+
+/* Legacy: negative prompt UI removed; keep the rule harmless if referenced elsewhere. */
 
 .quick-settings {
   display: grid;
@@ -272,6 +285,35 @@ h3 {
   color: var(--muted);
 }
 
+.color-swatches {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-left: 0.2rem;
+}
+
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  padding: 0;
+  min-height: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--swatch, #101820);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25) inset;
+}
+
+.swatch:hover {
+  filter: brightness(1.08);
+}
+
+.swatch.active {
+  border-color: rgba(58, 123, 255, 0.9);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.25) inset,
+    0 0 0 2px rgba(58, 123, 255, 0.25);
+}
+
 #brush-size-picker {
   width: 7rem;
 }
@@ -296,6 +338,7 @@ h3 {
   padding: 0.75rem;
   gap: 0.75rem;
   overflow: hidden;
+  max-height: 100%;
 }
 
 .rail-top {
@@ -343,6 +386,7 @@ h3 {
 .rail-content {
   overflow: auto;
   padding-right: 0.15rem;
+  min-height: 0;
 }
 
 .advanced-rail.is-collapsed .rail-title,
@@ -356,10 +400,13 @@ h3 {
   border-radius: var(--r-md);
   padding: 0.6rem;
   border: 1px solid var(--line);
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  min-height: 38vh;
+  max-height: 52vh;
+  overflow: hidden;
 }
 
 .canvas-wrap canvas {
@@ -367,8 +414,8 @@ h3 {
   background: #ffffff;
   border: 2px solid rgba(255, 255, 255, 0.14);
   cursor: crosshair;
-  width: 100%;
-  height: 100%;
+  width: min(100%, 860px);
+  max-height: 100%;
   display: block;
 }
 
@@ -380,7 +427,9 @@ h3 {
   display: grid;
   place-items: center;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  min-height: 38vh;
+  max-height: 52vh;
+  overflow: hidden;
 }
 
 .output-compare {
@@ -478,6 +527,32 @@ h3 {
   margin-bottom: 0.75rem;
 }
 
+/* Advanced settings: pack controls tighter by flowing fields in two columns. */
+.advanced-rail .settings-section {
+  display: grid;
+  grid-template-columns: 1fr;
+  column-gap: 0.75rem;
+  row-gap: 0.35rem;
+}
+
+.advanced-rail .settings-summary {
+  grid-column: 1 / -1;
+}
+
+.advanced-rail .field {
+  margin-top: 0.35rem;
+}
+
+.advanced-rail .field.span-2 {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 950px) {
+  .advanced-rail .settings-section {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .settings-section:last-child {
   border-bottom: none;
   margin-bottom: 0;
@@ -532,12 +607,12 @@ select {
 button {
   border-radius: var(--r-xs);
   border: 1px solid var(--line2);
-  padding: 0.55rem 0.9rem;
+  padding: 0.44rem 0.75rem;
   background: rgba(10, 12, 16, 0.55);
   color: var(--text);
   cursor: pointer;
-  font-size: 0.9rem;
-  min-height: 40px;
+  font-size: 0.88rem;
+  min-height: 36px;
 }
 
 button.primary {
