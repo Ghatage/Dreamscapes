@@ -6,6 +6,7 @@ import { initOutput } from './modules/output.js'
 import { createApiClient } from './modules/api.js'
 import { buildWorkflow } from './modules/workflow.js'
 import { initQuickSettings } from './modules/quickSettings.js'
+import { initHistory } from './modules/history.js'
 
 const CONTROL_PRESETS = {
   loose: { strength: 0.82, cfg: 4.5, steps: 18 },
@@ -37,6 +38,7 @@ app.innerHTML = `
             <button id="advanced-toggle-btn" class="subtle" title="Toggle advanced settings">
               Advanced
             </button>
+            <button id="history-toggle-btn" class="subtle" title="Generation History">History</button>
             <span id="status-top" class="status-pill">Idle</span>
           </div>
 
@@ -131,6 +133,15 @@ function generateSeed() {
   return Math.floor(Math.random() * 1_000_000_000)
 }
 
+function arrayBufferToDataURL(buffer, contentType = 'image/png') {
+  return new Promise((resolve) => {
+    const blob = new Blob([buffer], { type: contentType })
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result)
+    reader.readAsDataURL(blob)
+  })
+}
+
 function approxEqual(a, b, epsilon = 0.0001) {
   return Math.abs(Number(a) - Number(b)) <= epsilon
 }
@@ -165,23 +176,39 @@ initQuickSettings(document.querySelector('[data-quick-settings]'), store, [
 const canvas = initCanvas(document.querySelector('#sketch-canvas'), store, {
   onDraw: () => scheduleLiveRun(),
 })
+canvas.resize(store.getState().width, store.getState().height)
 
-const output = initOutput(
-  document.querySelector('#output-image'),
-  document.querySelector('#output-placeholder')
-)
+const outputImg = document.querySelector('#output-image')
+const placeholder = document.querySelector('#output-placeholder')
+const output = initOutput(outputImg, placeholder)
+
+const history = initHistory(document.body, {
+  onRestore: async (node) => {
+    await canvas.loadFromDataURL(node.inputDataURL)
+    store.setState({ prompt: node.prompt })
+    outputImg.src = node.outputDataURL
+    outputImg.classList.add('visible')
+    placeholder.classList.add('hidden')
+    setStatus('Restored to step #' + node.id)
+  },
+})
 
 const statusEl = document.querySelector('#status')
 const statusTopEl = document.querySelector('#status-top')
 const api = createApiClient({
   onJsonMessage: handleWsMessage,
-  onBinaryImage: (buffer, meta) => output.setImageFromArrayBuffer(buffer, meta),
+  onBinaryImage: (buffer, meta) => {
+    output.setImageFromArrayBuffer(buffer, meta)
+    latestOutputBuffer = buffer
+  },
   onConnection: (state) => {
     store.setState({ wsStatus: state })
   },
 })
 
 let activePromptId = null
+let latestOutputBuffer = null
+let pendingHistoryPartial = null
 let runQueued = false
 let liveTimer = null
 let availableControlNets = []
@@ -200,6 +227,7 @@ const swatchButtons = [...document.querySelectorAll('.swatch[data-color]')]
 const liveToggle = document.querySelector('#live-toggle')
 const promptInline = document.querySelector('#prompt-inline')
 const presetButtons = [...document.querySelectorAll('[data-control-preset]')]
+const historyToggleBtn = document.querySelector('#history-toggle-btn')
 
 brushColorPicker.value = store.getState().brushColor || '#101820'
 brushColorPicker.addEventListener('input', (event) => {
@@ -309,6 +337,8 @@ presetButtons.forEach((button) => {
   })
 })
 
+historyToggleBtn.addEventListener('click', () => history.toggleSidebar())
+
 function setStatus(message) {
   statusEl.textContent = message
   if (statusTopEl) statusTopEl.textContent = message
@@ -345,6 +375,8 @@ async function triggerRun({ reason }) {
 
   const runState = state.seedLocked ? state : { ...state, seed: generateSeed() }
 
+  pendingHistoryPartial = history.capturePreState(canvas.getBase64(), runState.prompt || '')
+
   let imageName = null
   try {
     const upload = await api.uploadImage(runState.serverUrl, canvas.getBase64())
@@ -371,6 +403,20 @@ function handleWsMessage(message) {
     const data = message.data || {}
     if (activePromptId && data.prompt_id === activePromptId && data.node === null) {
       activePromptId = null
+
+      if (pendingHistoryPartial && latestOutputBuffer) {
+        const partial = pendingHistoryPartial
+        const buffer = latestOutputBuffer
+        pendingHistoryPartial = null
+        latestOutputBuffer = null
+        arrayBufferToDataURL(buffer).then((outputDataURL) => {
+          history.finalizeNode(partial, outputDataURL)
+        })
+      } else {
+        pendingHistoryPartial = null
+        latestOutputBuffer = null
+      }
+
       if (runQueued) {
         runQueued = false
         triggerRun({ reason: 'live' })

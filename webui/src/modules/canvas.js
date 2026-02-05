@@ -52,17 +52,16 @@ export function initCanvas(canvas, store, { onDraw } = {}) {
   }
 
   function getPos(event) {
-    const rect = canvas.getBoundingClientRect()
-    // Map from CSS pixels (what the user clicks) to the canvas' logical coordinate space.
-    // This fixes pointer offset when the canvas is visually scaled by CSS.
-    const ratio = window.devicePixelRatio || 1
-    const logicalW = canvas.width / ratio
-    const logicalH = canvas.height / ratio
-    const sx = rect.width ? (logicalW / rect.width) : 1
-    const sy = rect.height ? (logicalH / rect.height) : 1
+    const m = ctx.getTransform()
+    const scaleX = m.a || 1
+    const scaleY = m.d || 1
+    const logicalW = canvas.width / scaleX
+    const logicalH = canvas.height / scaleY
+    const sx = canvas.clientWidth ? (logicalW / canvas.clientWidth) : 1
+    const sy = canvas.clientHeight ? (logicalH / canvas.clientHeight) : 1
     return {
-      x: (event.clientX - rect.left) * sx,
-      y: (event.clientY - rect.top) * sy,
+      x: event.offsetX * sx,
+      y: event.offsetY * sy,
     }
   }
 
@@ -130,10 +129,27 @@ export function initCanvas(canvas, store, { onDraw } = {}) {
     return hasContent
   }
 
+  function loadFromDataURL(dataURL) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        ctx.save()
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        ctx.restore()
+        hasContent = true
+        resolve()
+      }
+      img.onerror = reject
+      img.src = dataURL
+    })
+  }
+
   return {
     clear,
     resize,
     getBase64,
     hasContent: hasDrawn,
+    loadFromDataURL,
   }
 }
