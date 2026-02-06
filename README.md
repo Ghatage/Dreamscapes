@@ -1,6 +1,6 @@
-# Comfy Sketch UI
+# Dreamscapes
 
-A lightweight web-based frontend for ComfyUI that provides real-time canvas drawing with AI image generation.
+AI Assisted art generation in realtime.
 
 ## Features
 
